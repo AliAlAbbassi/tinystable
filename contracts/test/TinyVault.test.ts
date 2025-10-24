@@ -4,60 +4,60 @@ import { getAddress, parseUnits, zeroAddress, maxUint256 } from "viem";
 
 describe("TinyVault", function () {
   let tinyVault: any;
-  let usdc: any;
-  let aUsdc: any;
+  let weth: any;
+  let aWeth: any;
   let pool: any;
   let deployer: any;
   let user1: any;
   let user2: any;
   let attacker: any;
 
-  const INITIAL_SUPPLY = parseUnits("1000000", 6); // 1M USDC
-  const DEPOSIT_AMOUNT = parseUnits("1000", 6); // 1000 USDC
-  const SMALL_DEPOSIT = parseUnits("1", 6); // 1 USDC
-  const LARGE_DEPOSIT = parseUnits("100000", 6); // 100k USDC
+  const INITIAL_SUPPLY = parseUnits("1000", 18); // 1000 ETH
+  const DEPOSIT_AMOUNT = parseUnits("1", 18); // 1 ETH
+  const SMALL_DEPOSIT = parseUnits("0.1", 18); // 0.1 ETH
+  const LARGE_DEPOSIT = parseUnits("10", 18); // 10 ETH
 
   beforeEach(async function () {
     [deployer, user1, user2, attacker] = await viem.getWalletClients();
 
     // Deploy mock contracts
-    usdc = await viem.deployContract("MockERC20", ["USD Coin", "USDC", 6]);
-    aUsdc = await viem.deployContract("MockAToken", ["Aave USDC", "aUSDC", usdc.address]);
+    weth = await viem.deployContract("MockERC20", ["Wrapped Ether", "WETH", 18]);
+    aWeth = await viem.deployContract("MockAToken", ["Aave WETH", "aWETH", weth.address]);
     pool = await viem.deployContract("MockAavePool");
 
     // Setup pool configuration
-    await pool.write.setAssetToAToken([usdc.address, aUsdc.address]);
-    await pool.write.setLiquidityRate([usdc.address, parseUnits("3", 25)]); // 3% APY
+    await pool.write.setAssetToAToken([weth.address, aWeth.address]);
+    await pool.write.setLiquidityRate([weth.address, parseUnits("3", 25)]); // 3% APY
 
     // Deploy TinyVault
     tinyVault = await viem.deployContract("contracts/TinyVault.sol:TinyVault", [
-      usdc.address,
-      aUsdc.address,
+      weth.address,
+      aWeth.address,
       pool.address,
     ]);
 
-    // Mint USDC to users
-    await usdc.write.mint([user1.account.address, INITIAL_SUPPLY]);
-    await usdc.write.mint([user2.account.address, INITIAL_SUPPLY]);
-    await usdc.write.mint([attacker.account.address, INITIAL_SUPPLY]);
-    await usdc.write.mint([pool.address, INITIAL_SUPPLY]); // For withdrawals
+    // Mint WETH to users
+    await weth.write.mint([user1.account.address, INITIAL_SUPPLY]);
+    await weth.write.mint([user2.account.address, INITIAL_SUPPLY]);
+    await weth.write.mint([attacker.account.address, INITIAL_SUPPLY]);
+    await weth.write.mint([pool.address, INITIAL_SUPPLY]); // For withdrawals
 
     // Approve TinyVault to spend user tokens
-    await usdc.write.approve([tinyVault.address, maxUint256], { account: user1.account });
-    await usdc.write.approve([tinyVault.address, maxUint256], { account: user2.account });
-    await usdc.write.approve([tinyVault.address, maxUint256], { account: attacker.account });
+    await weth.write.approve([tinyVault.address, maxUint256], { account: user1.account });
+    await weth.write.approve([tinyVault.address, maxUint256], { account: user2.account });
+    await weth.write.approve([tinyVault.address, maxUint256], { account: attacker.account });
   });
 
   describe("Deployment", function () {
     it("Should deploy with correct parameters", async function () {
-      expect(await tinyVault.read.asset()).to.equal(getAddress(usdc.address));
-      expect(await tinyVault.read.aToken()).to.equal(getAddress(aUsdc.address));
+      expect(await tinyVault.read.asset()).to.equal(getAddress(weth.address));
+      expect(await tinyVault.read.aToken()).to.equal(getAddress(aWeth.address));
       expect(await tinyVault.read.pool()).to.equal(getAddress(pool.address));
     });
 
     it("Should set correct name and symbol", async function () {
-      expect(await tinyVault.read.name()).to.equal("TinyVault USDC");
-      expect(await tinyVault.read.symbol()).to.equal("tvUSDC");
+      expect(await tinyVault.read.name()).to.equal("TinyVault ETH");
+      expect(await tinyVault.read.symbol()).to.equal("tvETH");
     });
 
     it("Should set deployer as owner", async function () {
@@ -75,11 +75,11 @@ describe("TinyVault", function () {
 
   describe("Deposit Function", function () {
     it("Should deposit successfully and mint shares", async function () {
-      const balanceBefore = await usdc.read.balanceOf([user1.account.address]);
+      const balanceBefore = await weth.read.balanceOf([user1.account.address]);
 
       await tinyVault.write.deposit([DEPOSIT_AMOUNT], { account: user1.account });
 
-      const balanceAfter = await usdc.read.balanceOf([user1.account.address]);
+      const balanceAfter = await weth.read.balanceOf([user1.account.address]);
       const shares = await tinyVault.read.balanceOf([user1.account.address]);
       const totalDeposited = await tinyVault.read.totalDeposited();
       const userShares = await tinyVault.read.userShares([user1.account.address]);
@@ -104,7 +104,7 @@ describe("TinyVault", function () {
     it("Should update Aave pool correctly", async function () {
       await tinyVault.write.deposit([DEPOSIT_AMOUNT], { account: user1.account });
 
-      const aTokenBalance = await aUsdc.read.balanceOf([tinyVault.address]);
+      const aTokenBalance = await aWeth.read.balanceOf([tinyVault.address]);
       expect(aTokenBalance).to.equal(DEPOSIT_AMOUNT);
     });
 
@@ -167,7 +167,7 @@ describe("TinyVault", function () {
 
     it("Should revert on insufficient allowance", async function () {
       // Reset allowance to 0
-      await usdc.write.approve([tinyVault.address, 0n], { account: user1.account });
+      await weth.write.approve([tinyVault.address, 0n], { account: user1.account });
 
       try {
         await tinyVault.write.deposit([DEPOSIT_AMOUNT], { account: user1.account });
@@ -179,7 +179,7 @@ describe("TinyVault", function () {
     });
 
     it("Should revert on insufficient balance", async function () {
-      const userBalance = await usdc.read.balanceOf([user1.account.address]);
+      const userBalance = await weth.read.balanceOf([user1.account.address]);
       const excessiveAmount = userBalance + 1n;
 
       try {
@@ -211,12 +211,12 @@ describe("TinyVault", function () {
 
     it("Should withdraw successfully and burn shares", async function () {
       const sharesBefore = await tinyVault.read.balanceOf([user1.account.address]);
-      const balanceBefore = await usdc.read.balanceOf([user1.account.address]);
+      const balanceBefore = await weth.read.balanceOf([user1.account.address]);
 
       await tinyVault.write.withdraw([sharesBefore], { account: user1.account });
 
       const sharesAfter = await tinyVault.read.balanceOf([user1.account.address]);
-      const balanceAfter = await usdc.read.balanceOf([user1.account.address]);
+      const balanceAfter = await weth.read.balanceOf([user1.account.address]);
       const totalDeposited = await tinyVault.read.totalDeposited();
 
       expect(sharesAfter).to.equal(0n);
@@ -248,10 +248,10 @@ describe("TinyVault", function () {
     });
 
     it("Should handle withdrawals with yield", async function () {
-      const yieldAmount = parseUnits("50", 6); // 50 USDC yield
+      const yieldAmount = parseUnits("0.5", 18); // 0.5 WETH yield
 
       // Simulate yield by minting aTokens to vault
-      await aUsdc.write.simulateYield([tinyVault.address, yieldAmount]);
+      await aWeth.write.simulateYield([tinyVault.address, yieldAmount]);
 
       const shares = await tinyVault.read.balanceOf([user1.account.address]);
       const expectedAssets = await tinyVault.read.convertToAssets([shares]);
@@ -299,9 +299,9 @@ describe("TinyVault", function () {
 
       await pool.write.setWithdrawReturnAmount([actualWithdrawn]);
 
-      const balanceBefore = await usdc.read.balanceOf([user1.account.address]);
+      const balanceBefore = await weth.read.balanceOf([user1.account.address]);
       await tinyVault.write.withdraw([shares], { account: user1.account });
-      const balanceAfter = await usdc.read.balanceOf([user1.account.address]);
+      const balanceAfter = await weth.read.balanceOf([user1.account.address]);
 
       expect(balanceAfter - balanceBefore).to.equal(actualWithdrawn);
     });
@@ -313,7 +313,7 @@ describe("TinyVault", function () {
     });
 
     it("Should withdraw all shares successfully", async function () {
-      const balanceBefore = await usdc.read.balanceOf([user1.account.address]);
+      const balanceBefore = await weth.read.balanceOf([user1.account.address]);
       const sharesBefore = await tinyVault.read.balanceOf([user1.account.address]);
 
       // Make sure user has shares before withdrawal
@@ -323,7 +323,7 @@ describe("TinyVault", function () {
       await tinyVault.write.withdraw([sharesBefore], { account: user1.account });
 
       const sharesAfter = await tinyVault.read.balanceOf([user1.account.address]);
-      const balanceAfter = await usdc.read.balanceOf([user1.account.address]);
+      const balanceAfter = await weth.read.balanceOf([user1.account.address]);
 
       expect(sharesAfter).to.equal(0n);
       expect(balanceAfter).to.be.greaterThan(balanceBefore);
@@ -351,7 +351,7 @@ describe("TinyVault", function () {
 
   describe("Share Calculation Math", function () {
     it("Should maintain 1:1 ratio initially", async function () {
-      const assets = parseUnits("1000", 6);
+      const assets = parseUnits("10", 18);
       const shares = await tinyVault.read.convertToShares([assets]);
       expect(shares).to.equal(assets);
     });
@@ -361,11 +361,11 @@ describe("TinyVault", function () {
       await tinyVault.write.deposit([DEPOSIT_AMOUNT], { account: user1.account });
 
       // Simulate yield
-      const yieldAmount = parseUnits("100", 6);
-      await aUsdc.write.simulateYield([tinyVault.address, yieldAmount]);
+      const yieldAmount = parseUnits("1", 18);
+      await aWeth.write.simulateYield([tinyVault.address, yieldAmount]);
 
       // New deposit should get fewer shares due to increased asset value
-      const newDeposit = parseUnits("1000", 6);
+      const newDeposit = parseUnits("10", 18);
       const expectedShares = await tinyVault.read.convertToShares([newDeposit]);
 
       expect(expectedShares).to.be.lessThan(newDeposit);
@@ -378,18 +378,18 @@ describe("TinyVault", function () {
     });
 
     it("Should handle precision with large amounts", async function () {
-      const largeAmount = parseUnits("1000000000", 6); // 1B USDC
+      const largeAmount = parseUnits("1000", 18); // 1B WETH
       const shares = await tinyVault.read.convertToShares([largeAmount]);
       expect(shares).to.equal(largeAmount);
     });
 
     it("Should handle rounding correctly", async function () {
       // Setup scenario with specific ratio
-      await tinyVault.write.deposit([parseUnits("1000", 6)], { account: user1.account });
-      await aUsdc.write.simulateYield([tinyVault.address, parseUnits("1", 6)]);
+      await tinyVault.write.deposit([parseUnits("10", 18)], { account: user1.account });
+      await aWeth.write.simulateYield([tinyVault.address, parseUnits("1", 6)]);
 
       // Test conversion both ways
-      const assets = parseUnits("3", 6);
+      const assets = parseUnits("0.3", 18);
       const shares = await tinyVault.read.convertToShares([assets]);
       const backToAssets = await tinyVault.read.convertToAssets([shares]);
 
@@ -399,7 +399,7 @@ describe("TinyVault", function () {
     });
 
     it("Should prevent division by zero", async function () {
-      const shares = parseUnits("100", 6);
+      const shares = parseUnits("1", 18);
       const assets = await tinyVault.read.convertToAssets([shares]);
       expect(assets).to.equal(0n);
     });
@@ -463,8 +463,8 @@ describe("TinyVault", function () {
     });
 
     it("Should calculate user yield correctly", async function () {
-      const yieldAmount = parseUnits("50", 6);
-      await aUsdc.write.simulateYield([tinyVault.address, yieldAmount]);
+      const yieldAmount = parseUnits("0.5", 18);
+      await aWeth.write.simulateYield([tinyVault.address, yieldAmount]);
 
       const userYield = await tinyVault.read.getUserYield([user1.account.address]);
       expect(userYield).to.be.greaterThan(0n);
@@ -497,31 +497,31 @@ describe("TinyVault", function () {
 
       await tinyVault.write.emergencyWithdraw([], { account: deployer.account });
 
-      const poolBalance = await usdc.read.balanceOf([pool.address]);
+      const poolBalance = await weth.read.balanceOf([pool.address]);
       expect(poolBalance).to.be.greaterThan(0n);
     });
 
     it("Should allow only owner to call recoverERC20", async function () {
       try {
-        await tinyVault.write.recoverERC20([usdc.address, DEPOSIT_AMOUNT], { account: user1.account });
+        await tinyVault.write.recoverERC20([weth.address, DEPOSIT_AMOUNT], { account: user1.account });
         expect.fail("Should have reverted");
       } catch (error: any) {
         expect(error.message).to.include("OwnableUnauthorizedAccount");
       }
     });
 
-    it("Should prevent recovery of USDC", async function () {
+    it("Should prevent recovery of WETH", async function () {
       try {
-        await tinyVault.write.recoverERC20([usdc.address, DEPOSIT_AMOUNT], { account: deployer.account });
+        await tinyVault.write.recoverERC20([weth.address, DEPOSIT_AMOUNT], { account: deployer.account });
         expect.fail("Should have reverted");
       } catch (error: any) {
         expect(error.message).to.include("Cannot recover main asset");
       }
     });
 
-    it("Should prevent recovery of aUSDC", async function () {
+    it("Should prevent recovery of aWETH", async function () {
       try {
-        await tinyVault.write.recoverERC20([aUsdc.address, DEPOSIT_AMOUNT], { account: deployer.account });
+        await tinyVault.write.recoverERC20([aWeth.address, DEPOSIT_AMOUNT], { account: deployer.account });
         expect.fail("Should have reverted");
       } catch (error: any) {
         expect(error.message).to.include("Cannot recover aToken");
@@ -531,12 +531,12 @@ describe("TinyVault", function () {
 
   describe("Edge Cases and Security", function () {
     it("Should handle zero total supply correctly", async function () {
-      const assets = await tinyVault.read.convertToAssets([parseUnits("100", 6)]);
+      const assets = await tinyVault.read.convertToAssets([parseUnits("1", 18)]);
       expect(assets).to.equal(0n);
     });
 
     it("Should handle maximum deposit amounts", async function () {
-      const maxAmount = parseUnits("1000000", 6); // 1M USDC
+      const maxAmount = parseUnits("1000000", 6); // 1M WETH
 
       await tinyVault.write.deposit([maxAmount], { account: user1.account });
 
@@ -556,7 +556,7 @@ describe("TinyVault", function () {
     it("Should prevent reentrancy on deposit", async function () {
       // The nonReentrant modifier should prevent reentrancy
       // This test verifies the modifier is in place
-      const depositAmount = parseUnits("1000", 6);
+      const depositAmount = parseUnits("10", 18);
 
       await tinyVault.write.deposit([depositAmount], { account: user1.account });
 
@@ -618,8 +618,8 @@ describe("TinyVault", function () {
       const user1BalanceBefore = await tinyVault.read.getUserBalance([user1.account.address]);
       const user2BalanceBefore = await tinyVault.read.getUserBalance([user2.account.address]);
 
-      const yieldAmount = parseUnits("100", 6);
-      await aUsdc.write.simulateYield([tinyVault.address, yieldAmount]);
+      const yieldAmount = parseUnits("1", 18);
+      await aWeth.write.simulateYield([tinyVault.address, yieldAmount]);
 
       // Check balances after yield
       const user1BalanceAfter = await tinyVault.read.getUserBalance([user1.account.address]);
@@ -642,9 +642,9 @@ describe("TinyVault", function () {
 
     it("Should maintain precision across multiple operations", async function () {
       // Deposit, add yield, deposit again, withdraw partially
-      await tinyVault.write.deposit([parseUnits("1000", 6)], { account: user1.account });
-      await aUsdc.write.simulateYield([tinyVault.address, parseUnits("1", 6)]);
-      await tinyVault.write.deposit([parseUnits("1000", 6)], { account: user2.account });
+      await tinyVault.write.deposit([parseUnits("10", 18)], { account: user1.account });
+      await aWeth.write.simulateYield([tinyVault.address, parseUnits("1", 6)]);
+      await tinyVault.write.deposit([parseUnits("10", 18)], { account: user2.account });
 
       const user1Shares = await tinyVault.read.balanceOf([user1.account.address]);
       await tinyVault.write.withdraw([user1Shares / 2n], { account: user1.account });

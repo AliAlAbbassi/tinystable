@@ -7,12 +7,12 @@ import "./base/AaveIntegration.sol";
 
 contract TinyVault is BaseVault, AaveIntegration {
     constructor(
-        address _usdc,
-        address _aUsdc,
+        address _weth,
+        address _aWeth,
         address _pool
     )
-        BaseVault("TinyVault USDC", "tvUSDC")
-        AaveIntegration(_usdc, _aUsdc, _pool)
+        BaseVault("TinyVault ETH", "tvETH")
+        AaveIntegration(_weth, _aWeth, _pool)
     {}
 
     function deposit(uint256 amount) external override nonReentrant {
