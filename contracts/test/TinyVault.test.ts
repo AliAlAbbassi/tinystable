@@ -30,7 +30,7 @@ describe("TinyVault", function () {
     await pool.write.setLiquidityRate([usdc.address, parseUnits("3", 25)]); // 3% APY
 
     // Deploy TinyVault
-    tinyVault = await viem.deployContract("TinyVault", [
+    tinyVault = await viem.deployContract("contracts/TinyVault.sol:TinyVault", [
       usdc.address,
       aUsdc.address,
       pool.address,
@@ -50,8 +50,8 @@ describe("TinyVault", function () {
 
   describe("Deployment", function () {
     it("Should deploy with correct parameters", async function () {
-      expect(await tinyVault.read.usdc()).to.equal(getAddress(usdc.address));
-      expect(await tinyVault.read.aUsdc()).to.equal(getAddress(aUsdc.address));
+      expect(await tinyVault.read.asset()).to.equal(getAddress(usdc.address));
+      expect(await tinyVault.read.aToken()).to.equal(getAddress(aUsdc.address));
       expect(await tinyVault.read.pool()).to.equal(getAddress(pool.address));
     });
 
@@ -515,7 +515,7 @@ describe("TinyVault", function () {
         await tinyVault.write.recoverERC20([usdc.address, DEPOSIT_AMOUNT], { account: deployer.account });
         expect.fail("Should have reverted");
       } catch (error: any) {
-        expect(error.message).to.include("Cannot recover USDC");
+        expect(error.message).to.include("Cannot recover main asset");
       }
     });
 
@@ -524,7 +524,7 @@ describe("TinyVault", function () {
         await tinyVault.write.recoverERC20([aUsdc.address, DEPOSIT_AMOUNT], { account: deployer.account });
         expect.fail("Should have reverted");
       } catch (error: any) {
-        expect(error.message).to.include("Cannot recover aUSDC");
+        expect(error.message).to.include("Cannot recover aToken");
       }
     });
   });

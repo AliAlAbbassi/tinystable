@@ -12,7 +12,12 @@ contract MockAavePool {
     bool public shouldFailWithdraw;
     uint256 public withdrawReturnAmount;
 
-    event Supply(address indexed asset, uint256 amount, address indexed onBehalfOf, uint16 referralCode);
+    event Supply(
+        address indexed asset,
+        uint256 amount,
+        address indexed onBehalfOf,
+        uint16 referralCode
+    );
     event Withdraw(address indexed asset, uint256 amount, address indexed to);
 
     function setAssetToAToken(address asset, address aToken) external {
@@ -43,10 +48,8 @@ contract MockAavePool {
     ) external {
         require(!shouldFailSupply, "Mock supply failure");
 
-        // Transfer asset from caller
         IERC20(asset).transferFrom(msg.sender, address(this), amount);
 
-        // Mint aTokens to onBehalfOf
         address aToken = assetToAToken[asset];
         require(aToken != address(0), "aToken not set");
         MockAToken(aToken).mint(onBehalfOf, amount);
@@ -69,18 +72,16 @@ contract MockAavePool {
             withdrawAmount = MockAToken(aToken).balanceOf(msg.sender);
         }
 
-        // Use custom return amount if set, otherwise use calculated amount
-        uint256 actualWithdrawn = withdrawReturnAmount > 0 ? withdrawReturnAmount : withdrawAmount;
+        uint256 actualWithdrawn = withdrawReturnAmount > 0
+            ? withdrawReturnAmount
+            : withdrawAmount;
 
-        // Burn aTokens from caller
         MockAToken(aToken).burn(msg.sender, withdrawAmount);
 
-        // Transfer underlying asset to recipient
         IERC20(asset).transfer(to, actualWithdrawn);
 
         emit Withdraw(asset, actualWithdrawn, to);
 
-        // Reset custom return amount after use
         if (withdrawReturnAmount > 0) {
             withdrawReturnAmount = 0;
         }
