@@ -1,10 +1,93 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Copy, Eye, EyeOff } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import { useWalletStore } from '../store/walletStore';
+import { WalletService } from '../services/walletService';
 
 export function WalletScreen() {
-  const [showPrivateKey, setShowPrivateKey] = React.useState(false);
+  const { address, privateKey, showPrivateKey, togglePrivateKey, setWallet, clearWallet } = useWalletStore();
+
+  const handleCopyAddress = async () => {
+    if (address) {
+      await Clipboard.setStringAsync(address);
+      Alert.alert('Copied!', 'Wallet address copied to clipboard');
+    }
+  };
+
+  const handleGenerateWallet = () => {
+    Alert.alert(
+      'Generate New Wallet?',
+      'This will create a new wallet and replace your current one. Make sure you have backed up your current private key.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Generate',
+          style: 'destructive',
+          onPress: () => {
+            // Mock wallet generation for now
+            const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
+            const mockPrivateKey = '0x' + Math.random().toString(16).substr(2, 64);
+            setWallet(mockAddress, mockPrivateKey);
+            Alert.alert('Success!', 'New wallet generated successfully');
+          }
+        }
+      ]
+    );
+  };
+
+  const handleExportWallet = () => {
+    if (!privateKey) {
+      Alert.alert('No Wallet', 'Please generate a wallet first');
+      return;
+    }
+
+    Alert.alert(
+      'Export Wallet',
+      'Choose export format:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Copy Private Key',
+          onPress: async () => {
+            await Clipboard.setStringAsync(privateKey);
+            Alert.alert('Copied!', 'Private key copied to clipboard');
+          }
+        },
+        {
+          text: 'Share QR Code',
+          onPress: () => Alert.alert('QR Code', 'QR code sharing not implemented yet')
+        }
+      ]
+    );
+  };
+
+  const handleImportWallet = () => {
+    Alert.alert(
+      'Import Wallet',
+      'Choose import method:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Paste Private Key',
+          onPress: () => Alert.alert('Import', 'Private key import not implemented yet')
+        },
+        {
+          text: 'Scan QR Code',
+          onPress: () => Alert.alert('Import', 'QR code scanning not implemented yet')
+        }
+      ]
+    );
+  };
+
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const formatPrivateKey = (key: string) => {
+    return `${key.slice(0, 8)}...${key.slice(-6)}`;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -19,9 +102,9 @@ export function WalletScreen() {
           <Text style={styles.cardLabel}>Your Address</Text>
           <View style={styles.addressRow}>
             <Text style={styles.addressText}>
-              0x742d...b79b
+              {address ? formatAddress(address) : 'No wallet generated'}
             </Text>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={handleCopyAddress}>
               <Copy size={16} color="#9ca3af" />
             </TouchableOpacity>
           </View>
@@ -31,7 +114,7 @@ export function WalletScreen() {
         <View style={styles.card}>
           <View style={styles.keyHeader}>
             <Text style={styles.cardLabel}>Private Key</Text>
-            <TouchableOpacity onPress={() => setShowPrivateKey(!showPrivateKey)}>
+            <TouchableOpacity onPress={togglePrivateKey}>
               {showPrivateKey ? (
                 <EyeOff size={16} color="#9ca3af" />
               ) : (
@@ -40,7 +123,7 @@ export function WalletScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.keyText}>
-            {showPrivateKey ? '0xac097...2ff80' : '••••••••••••••••'}
+            {showPrivateKey && privateKey ? formatPrivateKey(privateKey) : '••••••••••••••••'}
           </Text>
         </View>
 
@@ -56,13 +139,13 @@ export function WalletScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleGenerateWallet}>
             <Text style={styles.primaryButtonText}>Generate New Wallet</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleExportWallet}>
             <Text style={styles.secondaryButtonText}>Export Wallet</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleImportWallet}>
             <Text style={styles.secondaryButtonText}>Import Wallet</Text>
           </TouchableOpacity>
         </View>

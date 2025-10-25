@@ -17,7 +17,8 @@
     "clsx": "^2.1.1",
     "expo": "~54.0.0",
     "expo-clipboard": "~6.0.0",
-    "expo-secure-store": "~14.0.0",
+    "expo-crypto": "^15.0.7",
+    "expo-secure-store": "~14.0.1",
     "expo-status-bar": "~2.0.0",
     "lucide-react-native": "^0.548.0",
     "nativewind": "^4.2.1",
@@ -31,7 +32,8 @@
     "react-native-web": "^0.21.2",
     "tailwind-variants": "^3.1.1",
     "tailwindcss": "^4.1.16",
-    "viem": "^2.0.0"
+    "viem": "^2.38.4",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",

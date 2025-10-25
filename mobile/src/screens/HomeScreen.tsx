@@ -3,10 +3,15 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
+import { useWalletStore } from '../store/walletStore';
+import { useVaultStore } from '../store/vaultStore';
 
 export function HomeScreen() {
   const [depositModalVisible, setDepositModalVisible] = React.useState(false);
   const [withdrawModalVisible, setWithdrawModalVisible] = React.useState(false);
+
+  const { balance } = useWalletStore();
+  const { apy, tvl, userCount, vaultBalance } = useVaultStore();
 
   const handleDeposit = (amount: string) => {
     console.log('Depositing:', amount);
@@ -29,14 +34,14 @@ export function HomeScreen() {
         {/* APY Card */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Current APY</Text>
-          <Text style={styles.apyText}>4.2%</Text>
+          <Text style={styles.apyText}>{apy}%</Text>
           <Text style={styles.cardSubtext}>Powered by Aave V3</Text>
         </View>
 
         {/* Balance Card */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Your Balance</Text>
-          <Text style={styles.balanceText}>0.00 ETH</Text>
+          <Text style={styles.balanceText}>{balance} ETH</Text>
           <Text style={styles.cardSubtext}>≈ $0.00 USD</Text>
         </View>
 
@@ -62,11 +67,11 @@ export function HomeScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>TVL</Text>
-              <Text style={styles.statValue}>$0.00</Text>
+              <Text style={styles.statValue}>{tvl}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Users</Text>
-              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statValue}>{userCount}</Text>
             </View>
           </View>
         </View>
