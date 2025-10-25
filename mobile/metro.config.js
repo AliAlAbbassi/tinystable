@@ -1,36 +1,26 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const nodeLibs = require('node-libs-react-native');
 
 const config = getDefaultConfig(__dirname);
 
-// Polyfill node modules for viem
-config.resolver = {
-  ...config.resolver,
-  extraNodeModules: {
-    ...nodeLibs,
-    crypto: require.resolve('expo-crypto'),
-  },
-  sourceExts: [...config.resolver.sourceExts, 'cjs'],
+// Fix for viem import.meta issue
+config.resolver.unstable_enableSymlinks = true;
+config.resolver.unstable_conditionNames = ['react-native', 'browser', 'require'];
+
+// Add crypto polyfill for viem
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  crypto: require.resolve('expo-crypto'),
 };
 
-// Transform import.meta for viem
-config.transformer = {
-  ...config.transformer,
-  babelTransformerPath: require.resolve('metro-react-native-babel-transformer'),
-  getTransformOptions: async () => ({
-    transform: {
-      experimentalImportSupport: false,
-      inlineRequires: true,
-    },
-  }),
-};
+// Add support for .cjs files
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'cjs'];
 
-// Handle import.meta.url
-config.serializer = {
-  ...config.serializer,
-  getPolyfills: () => {
-    return [];
+// Transform import.meta
+config.transformer.getTransformOptions = async () => ({
+  transform: {
+    experimentalImportSupport: false,
+    inlineRequires: true,
   },
-};
+});
 
 module.exports = config;
