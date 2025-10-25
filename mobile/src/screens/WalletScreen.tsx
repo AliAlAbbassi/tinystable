@@ -26,11 +26,9 @@ export function WalletScreen() {
           text: 'Generate',
           style: 'destructive',
           onPress: () => {
-            // Mock wallet generation for now
-            const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
-            const mockPrivateKey = '0x' + Math.random().toString(16).substr(2, 64);
-            setWallet(mockAddress, mockPrivateKey);
-            Alert.alert('Success!', 'New wallet generated successfully');
+            const wallet = WalletService.generateWallet();
+            setWallet(wallet.address, wallet.privateKey);
+            Alert.alert('Success!', `New wallet generated!\n\nAddress: ${WalletService.formatAddress(wallet.address)}`);
           }
         }
       ]
@@ -82,11 +80,11 @@ export function WalletScreen() {
   };
 
   const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    return WalletService.formatAddress(addr);
   };
 
   const formatPrivateKey = (key: string) => {
-    return `${key.slice(0, 8)}...${key.slice(-6)}`;
+    return WalletService.formatPrivateKey(key);
   };
 
   return (
