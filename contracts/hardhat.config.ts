@@ -25,6 +25,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
       forking: process.env.MAINNET_RPC_URL ? {
         url: process.env.MAINNET_RPC_URL,
+        blockNumber: 18500000,
       } : undefined,
     },
     localhost: {
@@ -33,6 +34,11 @@ const config: HardhatUserConfig = {
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
+    "base-sepolia": {
+      url: "https://sepolia.base.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 84532,
     },
   },
   etherscan: {

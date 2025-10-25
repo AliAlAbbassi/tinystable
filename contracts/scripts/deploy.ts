@@ -14,12 +14,15 @@ async function main() {
   console.log("aWETH Address:", SEPOLIA_AWETH);
   console.log("Pool Address:", SEPOLIA_POOL);
 
-  // Deploy TinyVault
+  // Deploy TinyVault with explicit gas settings
   const tinyVault = await viem.deployContract("TinyVault", [
     SEPOLIA_WETH,
     SEPOLIA_AWETH,
     SEPOLIA_POOL,
-  ]);
+  ], {
+    gas: 2000000n,
+    gasPrice: 20000000000n, // 20 gwei
+  });
 
   console.log("TinyVault deployed to:", tinyVault.address);
 
