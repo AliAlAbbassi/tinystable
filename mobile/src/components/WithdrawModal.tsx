@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, StyleSheet } from 'react-native';
 import { X } from 'lucide-react-native';
 
 interface WithdrawModalProps {
@@ -31,68 +31,71 @@ export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00"
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 justify-end bg-black/50">
-        <View className="bg-zinc-900 rounded-t-3xl p-6 border-t border-zinc-800">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* Header */}
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-white text-xl font-bold">Withdraw ETH</Text>
-            <TouchableOpacity onPress={onClose} className="p-2">
+          <View style={styles.header}>
+            <Text style={styles.title}>Withdraw ETH</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color="#9ca3af" />
             </TouchableOpacity>
           </View>
 
           {/* Balance Info */}
-          <View className="bg-zinc-800/50 rounded-xl p-4 mb-4 border border-zinc-700">
-            <Text className="text-gray-400 text-xs mb-1">Available to withdraw</Text>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-white font-semibold">{maxAmount} tvETH</Text>
-              <TouchableOpacity onPress={handleMaxPress} className="bg-zinc-700 px-3 py-1 rounded-lg">
-                <Text className="text-white text-xs font-semibold">MAX</Text>
+          <View style={styles.balanceCard}>
+            <Text style={styles.balanceLabel}>Available to withdraw</Text>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceValue}>{maxAmount} tvETH</Text>
+              <TouchableOpacity onPress={handleMaxPress} style={styles.maxButton}>
+                <Text style={styles.maxButtonText}>MAX</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Amount Input */}
-          <View className="mb-6">
-            <Text className="text-gray-400 text-sm mb-3">Amount to Withdraw</Text>
-            <View className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Amount to Withdraw</Text>
+            <View style={styles.inputContainer}>
               <TextInput
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0.00"
                 placeholderTextColor="#6b7280"
                 keyboardType="numeric"
-                className="text-white text-2xl font-bold"
+                style={styles.input}
               />
-              <Text className="text-gray-500 text-sm mt-1">tvETH</Text>
+              <Text style={styles.inputCurrency}>tvETH</Text>
             </View>
           </View>
 
           {/* Info Card */}
-          <View className="bg-zinc-800/50 rounded-xl p-4 mb-6 border border-zinc-700">
-            <Text className="text-gray-400 text-xs mb-2">You will receive:</Text>
-            <Text className="text-white font-semibold">
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>You will receive:</Text>
+            <Text style={styles.infoValue}>
               {amount ? `~${amount} ETH` : '0.00 ETH'}
             </Text>
-            <Text className="text-gray-500 text-xs mt-1">
+            <Text style={styles.infoSubtext}>
               Exchange rate: 1 tvETH ≈ 1.042 ETH (includes earned yield)
             </Text>
           </View>
 
           {/* Actions */}
-          <View className="flex-row gap-3">
+          <View style={styles.actions}>
             <TouchableOpacity
               onPress={onClose}
-              className="flex-1 bg-zinc-800 rounded-xl py-4 border border-zinc-700"
+              style={styles.cancelButton}
             >
-              <Text className="text-white font-semibold text-center">Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleWithdraw}
-              className="flex-1 bg-white rounded-xl py-4"
+              style={[
+                styles.withdrawButton,
+                (!amount || parseFloat(amount) <= 0) && styles.withdrawButtonDisabled
+              ]}
               disabled={!amount || parseFloat(amount) <= 0}
             >
-              <Text className="text-black font-semibold text-center">
+              <Text style={styles.withdrawButtonText}>
                 Withdraw {amount ? amount : '0.00'} ETH
               </Text>
             </TouchableOpacity>
@@ -102,3 +105,145 @@ export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00"
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#18181b',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#27272a',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  title: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  balanceCard: {
+    backgroundColor: 'rgba(39, 39, 42, 0.5)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+  },
+  balanceLabel: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  balanceValue: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  maxButton: {
+    backgroundColor: '#3f3f46',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  maxButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  inputSection: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    color: '#9ca3af',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  inputContainer: {
+    backgroundColor: '#27272a',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+  },
+  input: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  inputCurrency: {
+    color: '#6b7280',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  infoCard: {
+    backgroundColor: 'rgba(39, 39, 42, 0.5)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+  },
+  infoLabel: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  infoValue: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  infoSubtext: {
+    color: '#6b7280',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  actions: {
+    flexDirection: 'row',
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#27272a',
+    borderRadius: 12,
+    paddingVertical: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  withdrawButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    marginLeft: 8,
+  },
+  withdrawButtonDisabled: {
+    opacity: 0.5,
+  },
+  withdrawButtonText: {
+    color: '#000',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});

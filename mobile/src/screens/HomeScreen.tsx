@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DepositModal } from '../components/DepositModal';
+import { WithdrawModal } from '../components/WithdrawModal';
 
 export function HomeScreen() {
   const [depositModalVisible, setDepositModalVisible] = React.useState(false);
@@ -70,8 +72,8 @@ export function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* Modals - Temporarily commented out until converted to StyleSheet */}
-      {/* <DepositModal
+      {/* Modals */}
+      <DepositModal
         visible={depositModalVisible}
         onClose={() => setDepositModalVisible(false)}
         onDeposit={handleDeposit}
@@ -81,7 +83,7 @@ export function HomeScreen() {
         onClose={() => setWithdrawModalVisible(false)}
         onWithdraw={handleWithdraw}
         maxAmount="0.00"
-      /> */}
+      />
     </SafeAreaView>
   );
 }
