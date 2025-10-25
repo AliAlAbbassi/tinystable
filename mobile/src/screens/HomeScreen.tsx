@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderWidth: 1,
     borderColor: '#27272a',
+    marginLeft: 8,
   },
   secondaryButtonText: {
     color: '#fff',
@@ -174,7 +175,6 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 16,
   },
   statCard: {
     flex: 1,
@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#27272a',
+    marginRight: 8,
   },
   statLabel: {
     color: '#9ca3af',
