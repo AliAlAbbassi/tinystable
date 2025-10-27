@@ -1,23 +1,51 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Copy, Eye, EyeOff } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useWalletStore } from '../store/walletStore';
-import { WalletService } from '../services/walletService';
+import { generateWallet, formatAddress as formatAddr, formatPrivateKey as formatPrivKey } from '../services/walletService';
+
+// Cross-platform alert function
+const showAlert = (title: string, message: string, buttons?: any[]) => {
+  if (Platform.OS === 'web') {
+    if (buttons && buttons.length > 1) {
+      const result = window.confirm(`${title}\n\n${message}`);
+      if (result && buttons[1]?.onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 export function WalletScreen() {
-  const { address, privateKey, showPrivateKey, togglePrivateKey, setWallet, clearWallet } = useWalletStore();
+  const { address, privateKey, showPrivateKey, togglePrivateKey, setWallet, clearWallet, loadWallet } = useWalletStore();
+
+  useEffect(() => {
+    loadWallet();
+  }, [loadWallet]);
 
   const handleCopyAddress = async () => {
     if (address) {
       await Clipboard.setStringAsync(address);
-      Alert.alert('Copied!', 'Wallet address copied to clipboard');
+      showAlert('Copied!', 'Wallet address copied to clipboard');
+    }
+  };
+
+  const handleCopyPrivateKey = async () => {
+    if (privateKey) {
+      await Clipboard.setStringAsync(privateKey);
+      showAlert('Copied!', 'Private key copied to clipboard');
     }
   };
 
   const handleGenerateWallet = () => {
-    Alert.alert(
+    console.log('Generate wallet button pressed');
+    showAlert(
       'Generate New Wallet?',
       'This will create a new wallet and replace your current one. Make sure you have backed up your current private key.',
       [
@@ -26,9 +54,16 @@ export function WalletScreen() {
           text: 'Generate',
           style: 'destructive',
           onPress: () => {
-            const wallet = WalletService.generateWallet();
-            setWallet(wallet.address, wallet.privateKey);
-            Alert.alert('Success!', `New wallet generated!\n\nAddress: ${WalletService.formatAddress(wallet.address)}`);
+            console.log('Generating new wallet...');
+            try {
+              const wallet = generateWallet();
+              console.log('Wallet generated:', wallet.address);
+              setWallet(wallet.address, wallet.privateKey);
+              showAlert('Success!', `New wallet generated!\n\nAddress: ${formatAddress(wallet.address)}`);
+            } catch (error) {
+              console.error('Error generating wallet:', error);
+              showAlert('Error', 'Failed to generate wallet');
+            }
           }
         }
       ]
@@ -80,11 +115,11 @@ export function WalletScreen() {
   };
 
   const formatAddress = (addr: string) => {
-    return WalletService.formatAddress(addr);
+    return formatAddr(addr);
   };
 
   const formatPrivateKey = (key: string) => {
-    return WalletService.formatPrivateKey(key);
+    return formatPrivKey(key);
   };
 
   return (
@@ -97,8 +132,11 @@ export function WalletScreen() {
 
         {/* Wallet Address */}
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Your Address</Text>
-          <View style={styles.addressRow}>
+          <View style={styles.labelContainer}>
+            <Text style={styles.cardLabel}>Your Address</Text>
+          </View>
+
+          <View style={styles.keyHeader}>
             <Text style={styles.addressText}>
               {address ? formatAddress(address) : 'No wallet generated'}
             </Text>
@@ -106,23 +144,37 @@ export function WalletScreen() {
               <Copy size={16} color="#9ca3af" />
             </TouchableOpacity>
           </View>
+
         </View>
 
         {/* Private Key */}
         <View style={styles.card}>
-          <View style={styles.keyHeader}>
+          <View style={styles.labelContainer}>
             <Text style={styles.cardLabel}>Private Key</Text>
-            <TouchableOpacity onPress={togglePrivateKey}>
-              {showPrivateKey ? (
-                <EyeOff size={16} color="#9ca3af" />
-              ) : (
-                <Eye size={16} color="#9ca3af" />
-              )}
-            </TouchableOpacity>
           </View>
-          <Text style={styles.keyText}>
-            {showPrivateKey && privateKey ? formatPrivateKey(privateKey) : '••••••••••••••••'}
-          </Text>
+
+          <View style={styles.keyHeader}>
+            <View style={styles.keyTextContainer}>
+              <Text style={styles.keyText}>
+                {showPrivateKey && privateKey ? privateKey : '••••••••••••••••'}
+              </Text>
+            </View>
+
+            <View style={styles.keyActions}>
+              {showPrivateKey && privateKey && (
+                <TouchableOpacity style={styles.iconButton} onPress={handleCopyPrivateKey}>
+                  <Copy size={16} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.iconButton} onPress={togglePrivateKey}>
+                {showPrivateKey ? (
+                  <EyeOff size={16} color="#9ca3af" />
+                ) : (
+                  <Eye size={16} color="#9ca3af" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Security Warning */}
@@ -180,11 +232,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#27272a',
+    position: 'relative',
   },
   cardLabel: {
     color: '#9ca3af',
     fontSize: 14,
-    marginBottom: 12,
+  },
+  labelContainer: {
+    height: 32,
+    justifyContent: 'center',
   },
   addressRow: {
     flexDirection: 'row',
@@ -195,22 +251,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'monospace',
     fontSize: 12,
-    flex: 1,
   },
   iconButton: {
-    marginLeft: 8,
-    padding: 8,
+    width: 32,
+    height: 32,
   },
   keyHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginTop: 12,
+    position: 'relative',
+  },
+  keyActions: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keyTextContainer: {
+    flex: 1,
+    marginRight: 20,
   },
   keyText: {
     color: '#fff',
     fontFamily: 'monospace',
     fontSize: 12,
+    lineHeight: 18,
   },
   warningCard: {
     backgroundColor: 'rgba(120, 53, 15, 0.2)',

@@ -1,6 +1,5 @@
 import { getVaultStats, getUserBalance, getCurrentApy, deposit, withdraw } from '../src/services/apiService';
 
-// Mock fetch for testing
 global.fetch = jest.fn();
 const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 

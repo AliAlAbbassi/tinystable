@@ -7,6 +7,12 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn().mockResolvedValue(void 0),
 }));
 
+jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios'
+  }
+}));
+
 describe('WalletStore', () => {
   beforeEach(() => {
     const { result } = renderHook(() => useWalletStore());
