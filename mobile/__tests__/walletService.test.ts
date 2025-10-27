@@ -1,4 +1,4 @@
-import { generateWallet, formatAddress, formatPrivateKey } from '../src/services/walletService';
+import { generateWallet, importWallet, formatAddress, formatPrivateKey } from '../src/services/walletService';
 
 describe('WalletService', () => {
   describe('generateWallet', () => {
@@ -29,6 +29,37 @@ describe('WalletService', () => {
 
       expect(wallet1.address).not.toBe(wallet2.address);
       expect(wallet1.privateKey).not.toBe(wallet2.privateKey);
+    });
+  });
+
+  describe('importWallet', () => {
+    it('should import wallet from valid private key', () => {
+      const privateKey = '0x1234567890123456789012345678901234567890123456789012345678901234';
+      const wallet = importWallet(privateKey);
+
+      expect(wallet).toHaveProperty('address');
+      expect(wallet).toHaveProperty('privateKey');
+      expect(typeof wallet.address).toBe('string');
+      expect(wallet.privateKey).toBe(privateKey);
+      expect(wallet.address).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    });
+
+    it('should import wallet from private key without 0x prefix', () => {
+      const privateKey = '1234567890123456789012345678901234567890123456789012345678901234';
+      const wallet = importWallet(privateKey);
+
+      expect(wallet.privateKey).toBe(`0x${privateKey}`);
+    });
+
+    it('should throw error for invalid private key format', () => {
+      expect(() => importWallet('invalid')).toThrow('Invalid private key');
+      expect(() => importWallet('0x123')).toThrow('Invalid private key');
+      expect(() => importWallet('')).toThrow('Invalid private key');
+    });
+
+    it('should throw error for private key with invalid characters', () => {
+      const invalidKey = '0x123456789012345678901234567890123456789012345678901234567890123g';
+      expect(() => importWallet(invalidKey)).toThrow('Invalid private key');
     });
   });
 

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Copy, Eye, EyeOff } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useWalletStore } from '../store/walletStore';
-import { generateWallet, formatAddress as formatAddr, formatPrivateKey as formatPrivKey } from '../services/walletService';
+import { generateWallet, importWallet, formatAddress as formatAddr, formatPrivateKey as formatPrivKey } from '../services/walletService';
 
 // Cross-platform alert function
 const showAlert = (title: string, message: string, buttons?: any[]) => {
@@ -72,11 +72,11 @@ export function WalletScreen() {
 
   const handleExportWallet = () => {
     if (!privateKey) {
-      Alert.alert('No Wallet', 'Please generate a wallet first');
+      showAlert('No Wallet', 'Please generate a wallet first');
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Export Wallet',
       'Choose export format:',
       [
@@ -85,33 +85,67 @@ export function WalletScreen() {
           text: 'Copy Private Key',
           onPress: async () => {
             await Clipboard.setStringAsync(privateKey);
-            Alert.alert('Copied!', 'Private key copied to clipboard');
+            showAlert('Copied!', 'Private key copied to clipboard');
           }
         },
         {
           text: 'Share QR Code',
-          onPress: () => Alert.alert('QR Code', 'QR code sharing not implemented yet')
+          onPress: () => showAlert('QR Code', 'QR code sharing not implemented yet')
         }
       ]
     );
   };
 
   const handleImportWallet = () => {
-    Alert.alert(
+    showAlert(
       'Import Wallet',
       'Choose import method:',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Paste Private Key',
-          onPress: () => Alert.alert('Import', 'Private key import not implemented yet')
+          onPress: () => handleImportFromPrivateKey()
         },
         {
           text: 'Scan QR Code',
-          onPress: () => Alert.alert('Import', 'QR code scanning not implemented yet')
+          onPress: () => showAlert('Import', 'QR code scanning not implemented yet')
         }
       ]
     );
+  };
+
+  const handleImportFromPrivateKey = async () => {
+    try {
+      const privateKey = await Clipboard.getStringAsync();
+
+      if (!privateKey || privateKey.trim() === '') {
+        showAlert('Error', 'No private key found in clipboard. Please copy a valid private key first.');
+        return;
+      }
+
+      showAlert(
+        'Import Wallet',
+        `Import wallet from private key?\n\nThis will replace your current wallet. Make sure you have backed up your current private key.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Import',
+            style: 'destructive',
+            onPress: () => {
+              try {
+                const wallet = importWallet(privateKey.trim());
+                setWallet(wallet.address, wallet.privateKey);
+                showAlert('Success!', `Wallet imported successfully!\n\nAddress: ${formatAddress(wallet.address)}`);
+              } catch (error) {
+                showAlert('Error', 'Invalid private key format. Please check your private key and try again.');
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      showAlert('Error', 'Failed to read clipboard. Please copy a valid private key first.');
+    }
   };
 
   const formatAddress = (addr: string) => {
