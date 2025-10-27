@@ -1,4 +1,4 @@
-import { ApiService } from '../src/services/apiService';
+import { getVaultStats, getUserBalance, getCurrentApy, deposit, withdraw } from '../src/services/apiService';
 
 // Mock fetch for testing
 global.fetch = jest.fn();
@@ -24,7 +24,7 @@ describe('ApiService', () => {
         json: jest.fn().mockResolvedValueOnce(mockResponse),
       } as any);
 
-      const result = await ApiService.getVaultStats();
+      const result = await getVaultStats();
 
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/vault/stats');
       expect(result).toEqual(mockResponse.data);
@@ -33,7 +33,7 @@ describe('ApiService', () => {
     it('should handle fetch errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      await expect(ApiService.getVaultStats()).rejects.toThrow('Network error');
+      await expect(getVaultStats()).rejects.toThrow('Network error');
     });
   });
 
@@ -52,7 +52,7 @@ describe('ApiService', () => {
         json: jest.fn().mockResolvedValueOnce(mockResponse),
       } as any);
 
-      const result = await ApiService.getUserBalance(address);
+      const result = await getUserBalance(address);
 
       expect(mockFetch).toHaveBeenCalledWith(`http://localhost:3001/vault/balance/${address}`);
       expect(result).toEqual(mockResponse.data);
@@ -61,7 +61,7 @@ describe('ApiService', () => {
     it('should handle invalid address format', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Invalid address'));
 
-      await expect(ApiService.getUserBalance('invalid')).rejects.toThrow('Invalid address');
+      await expect(getUserBalance('invalid')).rejects.toThrow('Invalid address');
     });
   });
 
@@ -78,7 +78,7 @@ describe('ApiService', () => {
         json: jest.fn().mockResolvedValueOnce(mockResponse),
       } as any);
 
-      const result = await ApiService.getCurrentApy();
+      const result = await getCurrentApy();
 
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/aave/apy');
       expect(result).toEqual(mockResponse.data);
@@ -89,7 +89,7 @@ describe('ApiService', () => {
     it('should log that deposit is not implemented', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
-      ApiService.deposit('0x123', '1.0', '0xprivatekey');
+      deposit('0x123', '1.0', '0xprivatekey');
 
       expect(consoleSpy).toHaveBeenCalledWith('Deposit not implemented yet');
       consoleSpy.mockRestore();
@@ -100,7 +100,7 @@ describe('ApiService', () => {
     it('should log that withdraw is not implemented', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
-      ApiService.withdraw('0x123', '1.0', '0xprivatekey');
+      withdraw('0x123', '1.0', '0xprivatekey');
 
       expect(consoleSpy).toHaveBeenCalledWith('Withdraw not implemented yet');
       consoleSpy.mockRestore();
