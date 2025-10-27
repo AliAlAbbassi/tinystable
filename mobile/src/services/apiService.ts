@@ -36,13 +36,56 @@ export const getCurrentApy = async () => {
   }
 };
 
-// TODO: Add deposit/withdraw endpoints when backend implements them
 export const deposit = async (address: string, amount: string, privateKey: string) => {
-  // Backend will handle the actual transaction
-  console.log('Deposit not implemented yet');
+  try {
+    const response = await fetch(`${API_URL}/vault/deposit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        address,
+        amount,
+        privateKey
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Deposit failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to deposit:', error);
+    throw error;
+  }
 };
 
 export const withdraw = async (address: string, amount: string, privateKey: string) => {
-  // Backend will handle the actual transaction
-  console.log('Withdraw not implemented yet');
+  try {
+    const response = await fetch(`${API_URL}/vault/withdraw`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        address,
+        amount,
+        privateKey
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Withdrawal failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to withdraw:', error);
+    throw error;
+  }
 };

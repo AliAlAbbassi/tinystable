@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getVaultStats, getUserBalance, getCurrentApy } from '../services/apiService';
 
 interface VaultState {
   apy: string;
@@ -32,20 +33,25 @@ export const useVaultStore = create<VaultState>()((set, get) => ({
   fetchVaultData: async () => {
     set({ isLoading: true });
     try {
-      // TODO: Fetch from backend API
-      // For now, using mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const [vaultStats, apyData] = await Promise.all([
+        getVaultStats(),
+        getCurrentApy()
+      ]);
 
       set({
-        apy: '4.2',
-        tvl: '$0.00',
-        userCount: '0',
-        vaultBalance: '0.00',
+        apy: apyData.apy || '4.2',
+        tvl: vaultStats.tvl || '$0.00',
+        userCount: vaultStats.userCount || '0',
         isLoading: false,
       });
     } catch (error) {
       console.error('Failed to fetch vault data:', error);
-      set({ isLoading: false });
+      set({
+        apy: '4.2',
+        tvl: '$0.00',
+        userCount: '0',
+        isLoading: false,
+      });
     }
   },
 }));

@@ -1,26 +1,120 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { useWalletStore } from '../store/walletStore';
 import { useVaultStore } from '../store/vaultStore';
+import { deposit, withdraw, getUserBalance } from '../services/apiService';
+
+const showAlert = (title: string, message: string, buttons?: any[]) => {
+  if (Platform.OS === 'web') {
+    if (buttons && buttons.length > 1) {
+      const result = window.confirm(`${title}\n\n${message}`);
+      if (result && buttons[1]?.onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+    }
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 export function HomeScreen() {
   const [depositModalVisible, setDepositModalVisible] = React.useState(false);
   const [withdrawModalVisible, setWithdrawModalVisible] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const { balance } = useWalletStore();
-  const { apy, tvl, userCount, vaultBalance } = useVaultStore();
+  const { balance, address, privateKey } = useWalletStore();
+  const { apy, tvl, userCount, vaultBalance, setVaultBalance } = useVaultStore();
 
-  const handleDeposit = (amount: string) => {
-    console.log('Depositing:', amount);
-    // TODO: Implement deposit logic
+  const refreshBalance = async () => {
+    if (!address) return;
+
+    try {
+      const balanceData = await getUserBalance(address);
+      setVaultBalance(balanceData.vaultBalance || '0.00');
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+    }
   };
 
-  const handleWithdraw = (amount: string) => {
-    console.log('Withdrawing:', amount);
-    // TODO: Implement withdraw logic
+  const handleDeposit = async (amount: string) => {
+    if (!address || !privateKey) {
+      showAlert('Error', 'Please generate a wallet first');
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      showAlert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    showAlert(
+      'Confirm Deposit',
+      `Deposit ${amount} ETH to earn yield?\n\nYou will receive ${amount} tvETH tokens.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Deposit',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const result = await deposit(address, amount, privateKey);
+              showAlert('Success!', `Successfully deposited ${amount} ETH!\n\nTransaction: ${result.txHash || 'Pending'}`);
+              await refreshBalance();
+            } catch (error: any) {
+              showAlert('Error', error.message || 'Failed to deposit. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleWithdraw = async (amount: string) => {
+    if (!address || !privateKey) {
+      showAlert('Error', 'Please generate a wallet first');
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      showAlert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    const maxWithdraw = parseFloat(vaultBalance);
+    if (parseFloat(amount) > maxWithdraw) {
+      showAlert('Error', `Cannot withdraw more than ${vaultBalance} tvETH`);
+      return;
+    }
+
+    showAlert(
+      'Confirm Withdrawal',
+      `Withdraw ${amount} tvETH?\n\nYou will receive approximately ${amount} ETH (plus earned yield).`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Withdraw',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const result = await withdraw(address, amount, privateKey);
+              showAlert('Success!', `Successfully withdrew ${amount} tvETH!\n\nTransaction: ${result.txHash || 'Pending'}`);
+              await refreshBalance();
+            } catch (error: any) {
+              showAlert('Error', error.message || 'Failed to withdraw. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -48,16 +142,22 @@ export function HomeScreen() {
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
             onPress={() => setDepositModalVisible(true)}
+            disabled={isLoading}
           >
-            <Text style={styles.primaryButtonText}>Deposit ETH</Text>
+            <Text style={styles.primaryButtonText}>
+              {isLoading ? 'Processing...' : 'Deposit ETH'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
             onPress={() => setWithdrawModalVisible(true)}
+            disabled={isLoading}
           >
-            <Text style={styles.secondaryButtonText}>Withdraw</Text>
+            <Text style={styles.secondaryButtonText}>
+              {isLoading ? 'Processing...' : 'Withdraw'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -87,7 +187,7 @@ export function HomeScreen() {
         visible={withdrawModalVisible}
         onClose={() => setWithdrawModalVisible(false)}
         onWithdraw={handleWithdraw}
-        maxAmount="0.00"
+        maxAmount={vaultBalance}
       />
     </SafeAreaView>
   );
@@ -199,5 +299,8 @@ const styles = StyleSheet.create({
   statValue: {
     color: '#fff',
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -85,24 +85,84 @@ describe('ApiService', () => {
   });
 
   describe('deposit', () => {
-    it('should log that deposit is not implemented', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    it('should call deposit endpoint successfully', async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          txHash: '0xabc123',
+          amount: '1.0'
+        }
+      };
 
-      deposit('0x123', '1.0', '0xprivatekey');
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce(mockResponse),
+      } as any);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Deposit not implemented yet');
-      consoleSpy.mockRestore();
+      const result = await deposit('0x123', '1.0', '0xprivatekey');
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/vault/deposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: '0x123',
+          amount: '1.0',
+          privateKey: '0xprivatekey'
+        })
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle deposit errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: jest.fn().mockResolvedValueOnce({ error: 'Insufficient balance' }),
+      } as any);
+
+      await expect(deposit('0x123', '1.0', '0xprivatekey')).rejects.toThrow('Insufficient balance');
     });
   });
 
   describe('withdraw', () => {
-    it('should log that withdraw is not implemented', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    it('should call withdraw endpoint successfully', async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          txHash: '0xdef456',
+          amount: '0.5'
+        }
+      };
 
-      withdraw('0x123', '1.0', '0xprivatekey');
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce(mockResponse),
+      } as any);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Withdraw not implemented yet');
-      consoleSpy.mockRestore();
+      const result = await withdraw('0x123', '0.5', '0xprivatekey');
+
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3001/vault/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: '0x123',
+          amount: '0.5',
+          privateKey: '0xprivatekey'
+        })
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle withdraw errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: jest.fn().mockResolvedValueOnce({ error: 'Insufficient vault balance' }),
+      } as any);
+
+      await expect(withdraw('0x123', '0.5', '0xprivatekey')).rejects.toThrow('Insufficient vault balance');
     });
   });
 });
