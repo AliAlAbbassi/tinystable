@@ -26,6 +26,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 TinyStable API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`TinyStable API running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
 });

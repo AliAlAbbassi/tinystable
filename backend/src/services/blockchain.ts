@@ -1,9 +1,15 @@
-import { createPublicClient, http, Address } from 'viem';
+import { createPublicClient, createWalletClient, http, Address, parseEther, formatEther } from 'viem';
 import { sepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org';
 
 export const publicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org')
+  transport: http(SEPOLIA_RPC_URL)
 });
 
 export const CONTRACTS = {
@@ -61,5 +67,42 @@ export const TINY_VAULT_ABI = [
     stateMutability: 'view',
     inputs: [{ type: 'address' }],
     outputs: [{ type: 'uint256' }]
+  },
+  {
+    name: 'deposit',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    outputs: []
+  },
+  {
+    name: 'withdraw',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'shares', type: 'uint256' }],
+    outputs: []
+  },
+  {
+    name: 'convertToShares',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'assets', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }]
+  },
+  {
+    name: 'convertToAssets',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'shares', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }]
   }
 ] as const;
+
+export function createWalletFromPrivateKey(privateKey: string) {
+  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  return createWalletClient({
+    account,
+    chain: sepolia,
+    transport: http(SEPOLIA_RPC_URL)
+  });
+}

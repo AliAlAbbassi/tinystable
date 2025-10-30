@@ -8,6 +8,8 @@
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.ts --network sepolia",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "balance": "hardhat run scripts/check-balance.ts --network sepolia",
+    "faucet": "hardhat run scripts/get-faucet-eth.ts --network sepolia",
     "clean": "hardhat clean",
     "node": "hardhat node"
   },

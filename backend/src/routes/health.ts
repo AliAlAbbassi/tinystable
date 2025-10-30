@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getCurrentBlock } from '../services/vault';
 
 export const healthRoutes: Router = Router();
 
@@ -13,17 +14,19 @@ healthRoutes.get('/', (req, res) => {
 
 healthRoutes.get('/network', async (req, res) => {
   try {
-    // TODO: Add actual network connectivity check
+    const blockNumber = await getCurrentBlock();
     res.json({
       network: 'sepolia',
       connected: true,
-      blockNumber: null // Will implement once we have RPC connection
+      blockNumber,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({
       network: 'sepolia',
       connected: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     });
   }
 });

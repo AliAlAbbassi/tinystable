@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Copy, Eye, EyeOff } from 'lucide-react-native';
+import { Copy, Eye, EyeOff, Clipboard as ClipboardIcon, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useWalletStore } from '../store/walletStore';
 import { generateWallet, importWallet, formatAddress as formatAddr, formatPrivateKey as formatPrivKey } from '../services/walletService';
@@ -24,6 +24,9 @@ const showAlert = (title: string, message: string, buttons?: any[]) => {
 
 export function WalletScreen() {
   const { address, privateKey, showPrivateKey, togglePrivateKey, setWallet, clearWallet, loadWallet } = useWalletStore();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importPrivateKey, setImportPrivateKey] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     loadWallet();
@@ -97,54 +100,37 @@ export function WalletScreen() {
   };
 
   const handleImportWallet = () => {
-    showAlert(
-      'Import Wallet',
-      'Choose import method:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Paste Private Key',
-          onPress: () => handleImportFromPrivateKey()
-        },
-        {
-          text: 'Scan QR Code',
-          onPress: () => showAlert('Import', 'QR code scanning not implemented yet')
-        }
-      ]
-    );
+    setShowImportModal(true);
+    setImportPrivateKey('');
   };
 
-  const handleImportFromPrivateKey = async () => {
+  const handlePasteFromClipboard = async () => {
     try {
-      const privateKey = await Clipboard.getStringAsync();
-
-      if (!privateKey || privateKey.trim() === '') {
-        showAlert('Error', 'No private key found in clipboard. Please copy a valid private key first.');
-        return;
+      const text = await Clipboard.getStringAsync();
+      if (text) {
+        setImportPrivateKey(text.trim());
       }
-
-      showAlert(
-        'Import Wallet',
-        `Import wallet from private key?\n\nThis will replace your current wallet. Make sure you have backed up your current private key.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Import',
-            style: 'destructive',
-            onPress: () => {
-              try {
-                const wallet = importWallet(privateKey.trim());
-                setWallet(wallet.address, wallet.privateKey);
-                showAlert('Success!', `Wallet imported successfully!\n\nAddress: ${formatAddress(wallet.address)}`);
-              } catch (error) {
-                showAlert('Error', 'Invalid private key format. Please check your private key and try again.');
-              }
-            }
-          }
-        ]
-      );
     } catch (error) {
-      showAlert('Error', 'Failed to read clipboard. Please copy a valid private key first.');
+      showAlert('Error', 'Failed to paste from clipboard');
+    }
+  };
+
+  const handleConfirmImport = () => {
+    if (!importPrivateKey || importPrivateKey.trim() === '') {
+      showAlert('Error', 'Please enter a private key');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const wallet = importWallet(importPrivateKey.trim());
+      setWallet(wallet.address, wallet.privateKey);
+      setShowImportModal(false);
+      setImportPrivateKey('');
+    } catch (error) {
+      showAlert('Error', 'Invalid private key format. Please check your private key and try again.');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -234,6 +220,78 @@ export function WalletScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Import Wallet Modal */}
+      <Modal
+        visible={showImportModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowImportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Import Wallet</Text>
+              <TouchableOpacity
+                onPress={() => setShowImportModal(false)}
+                style={styles.closeButton}
+              >
+                <X size={24} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalDescription}>
+              Enter your private key to import an existing wallet. This will replace your current wallet.
+            </Text>
+
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                value={importPrivateKey}
+                onChangeText={setImportPrivateKey}
+                placeholder="Enter or paste private key (0x...)"
+                placeholderTextColor="#6b7280"
+                autoCapitalize="none"
+                autoCorrect={false}
+                multiline={true}
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+              <TouchableOpacity
+                style={styles.pasteButton}
+                onPress={handlePasteFromClipboard}
+              >
+                <ClipboardIcon size={20} color="#fff" />
+                <Text style={styles.pasteButtonText}>Paste</Text>
+              </TouchableOpacity>
+            </View>
+
+            {importPrivateKey.length > 0 && (
+              <Text style={styles.previewText}>
+                Preview: {formatAddress(importPrivateKey.substring(0, 10) + '...')}
+              </Text>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowImportModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, !importPrivateKey && styles.disabledButton]}
+                onPress={handleConfirmImport}
+                disabled={!importPrivateKey || isImporting}
+              >
+                <Text style={styles.confirmButtonText}>
+                  {isImporting ? 'Importing...' : 'Import Wallet'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -355,5 +413,107 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#18181b',
+    borderRadius: 20,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#27272a',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalDescription: {
+    color: '#9ca3af',
+    fontSize: 14,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#27272a',
+    borderRadius: 12,
+    padding: 16,
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+    minHeight: 100,
+  },
+  pasteButton: {
+    backgroundColor: '#3f3f46',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pasteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 6,
+    fontWeight: '600',
+  },
+  previewText: {
+    color: '#6b7280',
+    fontSize: 12,
+    marginBottom: 20,
+    fontFamily: 'monospace',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#27272a',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

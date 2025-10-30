@@ -24,6 +24,28 @@ export const getUserBalance = async (address: string) => {
   }
 };
 
+export const getEthBalance = async (address: string) => {
+  try {
+    const response = await fetch(`${API_URL}/vault/eth-balance/${address}`);
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Failed to fetch ETH balance:', error);
+    throw error;
+  }
+};
+
+export const getEthPrice = async () => {
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    const data = await response.json();
+    return data.ethereum.usd;
+  } catch (error) {
+    console.error('Failed to fetch ETH price:', error);
+    return 0; 
+  }
+};
+
 // Get current APY from Aave
 export const getCurrentApy = async () => {
   try {

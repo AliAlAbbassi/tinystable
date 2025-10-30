@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { useWalletStore } from '../store/walletStore';
 import { useVaultStore } from '../store/vaultStore';
-import { deposit, withdraw, getUserBalance } from '../services/apiService';
+import { deposit, withdraw, getUserBalance, getEthBalance, getEthPrice } from '../services/apiService';
 
 const showAlert = (title: string, message: string, buttons?: any[]) => {
   if (Platform.OS === 'web') {
@@ -26,16 +26,63 @@ export function HomeScreen() {
   const [depositModalVisible, setDepositModalVisible] = React.useState(false);
   const [withdrawModalVisible, setWithdrawModalVisible] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [ethPrice, setEthPrice] = React.useState(0);
+  const shimmerAnimation = React.useRef(new Animated.Value(0)).current;
 
-  const { balance, address, privateKey } = useWalletStore();
-  const { apy, tvl, userCount, vaultBalance, setVaultBalance } = useVaultStore();
+  const { balance, address, privateKey, setBalance, loadWallet } = useWalletStore();
+  const { apy, tvl, userCount, vaultBalance, setVaultBalance, fetchVaultData } = useVaultStore();
+
+  // Load wallet and fetch data when component mounts
+  React.useEffect(() => {
+    loadWallet();
+    fetchEthPrice();
+    fetchVaultData();
+
+    // Start shimmer animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnimation, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnimation, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const fetchEthPrice = async () => {
+    try {
+      const price = await getEthPrice();
+      setEthPrice(price);
+    } catch (error) {
+      console.error('Failed to fetch ETH price:', error);
+    }
+  };
+
+  // Fetch balances when address changes
+  React.useEffect(() => {
+    if (address) {
+      refreshBalance();
+    }
+  }, [address]);
 
   const refreshBalance = async () => {
     if (!address) return;
 
     try {
-      const balanceData = await getUserBalance(address);
-      setVaultBalance(balanceData.vaultBalance || '0.00');
+      // Fetch both ETH balance and vault balance
+      const [ethBalanceData, vaultBalanceData] = await Promise.all([
+        getEthBalance(address),
+        getUserBalance(address)
+      ]);
+
+      setBalance(ethBalanceData.balance || '0.00');
+      setVaultBalance(vaultBalanceData.vaultBalance || '0.00');
     } catch (error) {
       console.error('Failed to refresh balance:', error);
     }
@@ -128,7 +175,24 @@ export function HomeScreen() {
         {/* APY Card */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Current APY</Text>
-          <Text style={styles.apyText}>{apy}%</Text>
+          {apy === '4.2' ? (
+            <View style={styles.skeletonContainer}>
+              <Animated.View
+                style={[
+                  styles.skeleton,
+                  styles.skeletonApy,
+                  {
+                    opacity: shimmerAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.3, 0.7],
+                    }),
+                  }
+                ]}
+              />
+            </View>
+          ) : (
+            <Text style={styles.apyText}>{apy}%</Text>
+          )}
           <Text style={styles.cardSubtext}>Powered by Aave V3</Text>
         </View>
 
@@ -136,7 +200,9 @@ export function HomeScreen() {
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Your Balance</Text>
           <Text style={styles.balanceText}>{balance} ETH</Text>
-          <Text style={styles.cardSubtext}>≈ $0.00 USD</Text>
+          <Text style={styles.cardSubtext}>
+            ≈ ${ethPrice > 0 ? (parseFloat(balance) * ethPrice).toFixed(2) : '0.00'} USD
+          </Text>
         </View>
 
         {/* Quick Actions */}
@@ -170,7 +236,7 @@ export function HomeScreen() {
               <Text style={styles.statValue}>{tvl}</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Users</Text>
+              <Text style={styles.statLabel}>Aave TVL</Text>
               <Text style={styles.statValue}>{userCount}</Text>
             </View>
           </View>
@@ -302,5 +368,16 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  skeletonContainer: {
+    alignItems: 'flex-start',
+  },
+  skeleton: {
+    backgroundColor: '#374151',
+    borderRadius: 8,
+  },
+  skeletonApy: {
+    width: 80,
+    height: 40,
   },
 });
