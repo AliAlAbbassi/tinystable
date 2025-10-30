@@ -147,39 +147,43 @@ export const getUserBalance = async (userAddress: string): Promise<UserBalance> 
       throw new Error('TINY_VAULT_ADDRESS not configured');
     }
 
-    const [balance, shares, userYield, deposited] = await Promise.all([
-      publicClient.readContract({
-        address: CONTRACTS.TINY_VAULT,
-        abi: TINY_VAULT_ABI,
-        functionName: 'getUserBalance',
-        args: [userAddress as Address]
-      }),
-      publicClient.readContract({
-        address: CONTRACTS.TINY_VAULT,
-        abi: TINY_VAULT_ABI,
-        functionName: 'balanceOf',
-        args: [userAddress as Address]
-      }),
-      publicClient.readContract({
-        address: CONTRACTS.TINY_VAULT,
-        abi: TINY_VAULT_ABI,
-        functionName: 'getUserYield',
-        args: [userAddress as Address]
-      }),
-      publicClient.readContract({
-        address: CONTRACTS.TINY_VAULT,
-        abi: TINY_VAULT_ABI,
-        functionName: 'userDeposits',
-        args: [userAddress as Address]
-      })
-    ]);
+    const results = await publicClient.multicall({
+      contracts: [
+        {
+          address: CONTRACTS.TINY_VAULT,
+          abi: TINY_VAULT_ABI,
+          functionName: 'getUserBalance',
+          args: [userAddress as Address]
+        },
+        {
+          address: CONTRACTS.TINY_VAULT,
+          abi: TINY_VAULT_ABI,
+          functionName: 'balanceOf',
+          args: [userAddress as Address]
+        },
+        {
+          address: CONTRACTS.TINY_VAULT,
+          abi: TINY_VAULT_ABI,
+          functionName: 'getUserYield',
+          args: [userAddress as Address]
+        },
+        {
+          address: CONTRACTS.TINY_VAULT,
+          abi: TINY_VAULT_ABI,
+          functionName: 'userDeposits',
+          args: [userAddress as Address]
+        }
+      ]
+    });
+
+    const [balance, shares, userYield, deposited] = results.map(r => r.result);
 
     const userBalance: UserBalance = {
       address: userAddress,
-      balance: formatEther(balance),
-      shares: formatEther(shares),
-      yield: formatEther(userYield),
-      depositedAmount: formatEther(deposited),
+      balance: formatEther(balance as bigint),
+      shares: formatEther(shares as bigint),
+      yield: formatEther(userYield as bigint),
+      depositedAmount: formatEther(deposited as bigint),
       lastUpdated: new Date().toISOString()
     };
 
