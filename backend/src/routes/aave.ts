@@ -12,7 +12,7 @@ aaveRoutes.get('/apy', async (req, res) => {
       functionName: 'getApy'
     });
 
-    const apyString = (Number(apy) / 100).toFixed(2);
+    const apyString = (Number(apy.toString()) / 100).toFixed(2);
 
     res.json({
       success: true,
