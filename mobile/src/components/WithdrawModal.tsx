@@ -7,9 +7,10 @@ interface WithdrawModalProps {
   onClose: () => void;
   onWithdraw: (amount: string) => void;
   maxAmount?: string;
+  rawMaxAmount?: string;
 }
 
-export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00" }: WithdrawModalProps) {
+export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00", rawMaxAmount = "0" }: WithdrawModalProps) {
   const [amount, setAmount] = React.useState('');
 
   const handleWithdraw = () => {
@@ -21,7 +22,7 @@ export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00"
   };
 
   const handleMaxPress = () => {
-    setAmount(maxAmount);
+    setAmount(rawMaxAmount);
   };
 
   return (
@@ -35,7 +36,7 @@ export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00"
         <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Withdraw ETH</Text>
+            <Text style={styles.title}>Withdraw tvETH</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={24} color="#9ca3af" />
             </TouchableOpacity>
@@ -70,12 +71,12 @@ export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00"
 
           {/* Info Card */}
           <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>You will receive:</Text>
+            <Text style={styles.infoLabel}>You will receive approximately:</Text>
             <Text style={styles.infoValue}>
               {amount ? `~${amount} ETH` : '0.00 ETH'}
             </Text>
             <Text style={styles.infoSubtext}>
-              Exchange rate: 1 tvETH ≈ 1.042 ETH (includes earned yield)
+              The final amount may vary slightly due to the exchange rate.
             </Text>
           </View>
 
@@ -96,7 +97,7 @@ export function WithdrawModal({ visible, onClose, onWithdraw, maxAmount = "0.00"
               disabled={!amount || parseFloat(amount) <= 0}
             >
               <Text style={styles.withdrawButtonText}>
-                Withdraw {amount ? amount : '0.00'} ETH
+                Withdraw {amount ? amount : '0.00'} tvETH
               </Text>
             </TouchableOpacity>
           </View>

@@ -25,12 +25,13 @@ const showAlert = (title: string, message: string, buttons?: any[]) => {
 export function HomeScreen() {
   const [depositModalVisible, setDepositModalVisible] = React.useState(false);
   const [withdrawModalVisible, setWithdrawModalVisible] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isDepositing, setIsDepositing] = React.useState(false);
+  const [isWithdrawing, setIsWithdrawing] = React.useState(false);
   const [ethPrice, setEthPrice] = React.useState(0);
   const shimmerAnimation = React.useRef(new Animated.Value(0)).current;
 
   const { balance, address, privateKey, setBalance, loadWallet } = useWalletStore();
-  const { apy, tvl, userCount, vaultBalance, setVaultBalance, fetchVaultData } = useVaultStore();
+  const { apy, tvl, userCount, vaultBalance, rawVaultBalance, setVaultBalance, setRawVaultBalance, fetchVaultData } = useVaultStore();
 
   // Load wallet and fetch data when component mounts
   React.useEffect(() => {
@@ -82,7 +83,8 @@ export function HomeScreen() {
       ]);
 
       setBalance(ethBalanceData.balance || '0.00');
-      setVaultBalance(vaultBalanceData.vaultBalance || '0.00');
+      setVaultBalance(vaultBalanceData.balance || '0.00');
+      setRawVaultBalance(vaultBalanceData.shares || '0');
     } catch (error) {
       console.error('Failed to refresh balance:', error);
     }
@@ -107,7 +109,7 @@ export function HomeScreen() {
         {
           text: 'Deposit',
           onPress: async () => {
-            setIsLoading(true);
+            setIsDepositing(true);
             try {
               const result = await deposit(address, amount, privateKey);
               showAlert('Success!', `Successfully deposited ${amount} ETH!\n\nTransaction: ${result.txHash || 'Pending'}`);
@@ -115,7 +117,7 @@ export function HomeScreen() {
             } catch (error: any) {
               showAlert('Error', error.message || 'Failed to deposit. Please try again.');
             } finally {
-              setIsLoading(false);
+              setIsDepositing(false);
             }
           }
         }
@@ -148,7 +150,7 @@ export function HomeScreen() {
         {
           text: 'Withdraw',
           onPress: async () => {
-            setIsLoading(true);
+            setIsWithdrawing(true);
             try {
               const result = await withdraw(address, amount, privateKey);
               showAlert('Success!', `Successfully withdrew ${amount} tvETH!\n\nTransaction: ${result.txHash || 'Pending'}`);
@@ -156,7 +158,7 @@ export function HomeScreen() {
             } catch (error: any) {
               showAlert('Error', error.message || 'Failed to withdraw. Please try again.');
             } finally {
-              setIsLoading(false);
+              setIsWithdrawing(false);
             }
           }
         }
@@ -208,21 +210,21 @@ export function HomeScreen() {
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+            style={[styles.primaryButton, isDepositing && styles.buttonDisabled]}
             onPress={() => setDepositModalVisible(true)}
-            disabled={isLoading}
+            disabled={isDepositing || isWithdrawing}
           >
             <Text style={styles.primaryButtonText}>
-              {isLoading ? 'Processing...' : 'Deposit ETH'}
+              {isDepositing ? 'Depositing...' : 'Deposit ETH'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.secondaryButton, isLoading && styles.buttonDisabled]}
+            style={[styles.secondaryButton, isWithdrawing && styles.buttonDisabled]}
             onPress={() => setWithdrawModalVisible(true)}
-            disabled={isLoading}
+            disabled={isDepositing || isWithdrawing}
           >
             <Text style={styles.secondaryButtonText}>
-              {isLoading ? 'Processing...' : 'Withdraw'}
+              {isWithdrawing ? 'Withdrawing...' : 'Withdraw'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -254,6 +256,7 @@ export function HomeScreen() {
         onClose={() => setWithdrawModalVisible(false)}
         onWithdraw={handleWithdraw}
         maxAmount={vaultBalance}
+        rawMaxAmount={rawVaultBalance}
       />
     </SafeAreaView>
   );

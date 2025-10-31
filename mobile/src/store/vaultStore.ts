@@ -6,6 +6,7 @@ interface VaultState {
   tvl: string;
   userCount: string;
   vaultBalance: string;
+  rawVaultBalance: string;
   isLoading: boolean;
 
   // Actions
@@ -13,6 +14,7 @@ interface VaultState {
   setTvl: (tvl: string) => void;
   setUserCount: (count: string) => void;
   setVaultBalance: (balance: string) => void;
+  setRawVaultBalance: (balance: string) => void;
   setLoading: (loading: boolean) => void;
   fetchVaultData: () => Promise<void>;
 }
@@ -22,12 +24,14 @@ export const useVaultStore = create<VaultState>()((set, get) => ({
   tvl: '$0.00',
   userCount: '0',
   vaultBalance: '0.00',
+  rawVaultBalance: '0',
   isLoading: false,
 
   setApy: (apy) => set({ apy }),
   setTvl: (tvl) => set({ tvl }),
   setUserCount: (userCount) => set({ userCount }),
   setVaultBalance: (vaultBalance) => set({ vaultBalance }),
+  setRawVaultBalance: (rawVaultBalance) => set({ rawVaultBalance }),
   setLoading: (isLoading) => set({ isLoading }),
 
   fetchVaultData: async () => {

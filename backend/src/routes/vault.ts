@@ -200,7 +200,11 @@ vaultRoutes.post('/withdraw', async (req, res) => {
 
     res.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        blockNumber: result.blockNumber.toString(),
+        gasUsed: result.gasUsed.toString()
+      },
       timestamp: new Date().toISOString()
     });
 
