@@ -226,7 +226,7 @@ export const deposit = async (
 
   console.log(`Depositing ${amount} ETH for user ${userAddress}`);
 
-  console.log('Step 1: Wrapping ETH to WETH...');
+  console.log('Wrapping ETH to WETH...');
   const wrapTxHash = await walletClient.sendTransaction({
     to: CONTRACTS.WETH,
     value: amountWei,
