@@ -106,3 +106,8 @@ export function createWalletFromPrivateKey(privateKey: string) {
     transport: http(SEPOLIA_RPC_URL)
   });
 }
+
+export const getCurrentBlock = async (): Promise<number> => {
+  const blockNumber = await publicClient.getBlockNumber();
+  return Number(blockNumber);
+};
